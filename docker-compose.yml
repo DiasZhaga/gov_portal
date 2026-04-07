@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: gov_portal_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gov_portal
+      POSTGRES_USER: gov_user
+      POSTGRES_PASSWORD: gov_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
