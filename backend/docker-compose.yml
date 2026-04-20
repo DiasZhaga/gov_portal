@@ -5,6 +5,9 @@ services:
     image: postgres:16
     container_name: gov_portal_postgres
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
     environment:
       POSTGRES_DB: gov_portal
       POSTGRES_USER: gov_user
@@ -13,6 +16,9 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
 
 volumes:
   postgres_data:

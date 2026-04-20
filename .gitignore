@@ -1,5 +1,57 @@
+# Environment and secrets
 .env
-.venv
-backend/.venv
+.env.*
+!.env.example
 backend/.env
-backend/storage
+backend/.env.*
+!backend/.env.example
+
+# Python virtual environments
+.venv/
+venv/
+env/
+backend/.venv/
+
+# Python caches and build output
+__pycache__/
+*.py[cod]
+*$py.class
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Local app storage / user uploads
+uploads/
+storage/
+backend/uploads/
+backend/storage/
+
+# Local databases, logs, and scan outputs
+*.sqlite
+*.sqlite3
+*.db
+*.log
+*.tmp
+*.temp
+semgrep*.json
+bandit*.json
+pip-audit*.json
+scan-results/
+reports/
+
+# Editors and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Frontend local dependencies and build output
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/

@@ -1,5 +1,4 @@
 import uuid
-from inspect import signature
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -48,20 +47,16 @@ async def update_request_status(
             detail="Invalid status transition.",
         )
 
-    old_status = request.status
     request.status = payload.status
     request.public_comment = payload.public_comment
     await db.commit()
     await db.refresh(request)
 
-    audit_kwargs = {
-        "db": db,
-        "actor_id": current_user.id,
-        "action": "operator.request.status_change",
-        "target_type": "service_request",
-        "target_id": request.id,
-    }
-    if "metadata" in signature(log_audit_event).parameters:
-        audit_kwargs["metadata"] = {"old_status": old_status.value, "new_status": payload.status.value}
-    await log_audit_event(**audit_kwargs)
+    await log_audit_event(
+        db=db,
+        actor_id=current_user.id,
+        action="operator.request.status_change",
+        target_type="service_request",
+        target_id=request.id,
+    )
     return ServiceRequestPublic.model_validate(request)

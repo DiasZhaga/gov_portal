@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from collections import defaultdict, deque
+from time import monotonic
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +14,40 @@ from app.security import create_access_token, hash_password, verify_password
 
 router = APIRouter()
 
+FAILED_LOGIN_WINDOW_SECONDS = 300
+MAX_FAILED_LOGIN_ATTEMPTS = 5
+_failed_login_attempts: dict[tuple[str, str], deque[float]] = defaultdict(deque)
+
+
+def _login_attempt_key(request: Request, email: str) -> tuple[str, str]:
+    client_host = request.client.host if request.client else "unknown"
+    return (client_host, email.strip().lower())
+
+
+def _prune_failed_attempts(attempts: deque[float], now: float) -> None:
+    while attempts and now - attempts[0] > FAILED_LOGIN_WINDOW_SECONDS:
+        attempts.popleft()
+
+
+def _is_login_rate_limited(request: Request, email: str) -> bool:
+    key = _login_attempt_key(request, email)
+    attempts = _failed_login_attempts[key]
+    now = monotonic()
+    _prune_failed_attempts(attempts, now)
+    return len(attempts) >= MAX_FAILED_LOGIN_ATTEMPTS
+
+
+def _record_failed_login_attempt(request: Request, email: str) -> None:
+    key = _login_attempt_key(request, email)
+    attempts = _failed_login_attempts[key]
+    now = monotonic()
+    _prune_failed_attempts(attempts, now)
+    attempts.append(now)
+
+
+def _clear_failed_login_attempts(request: Request, email: str) -> None:
+    _failed_login_attempts.pop(_login_attempt_key(request, email), None)
+
 
 @router.post("/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
 async def register(payload: UserRegister, db: AsyncSession = Depends(get_db)) -> UserPublic:
@@ -18,7 +55,7 @@ async def register(payload: UserRegister, db: AsyncSession = Depends(get_db)) ->
     if existing.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered.",
+            detail="Registration could not be completed.",
         )
 
     user = User(
@@ -42,16 +79,31 @@ async def register(payload: UserRegister, db: AsyncSession = Depends(get_db)) ->
 
 
 @router.post("/login", response_model=Token)
-async def login(payload: UserLogin, db: AsyncSession = Depends(get_db)) -> Token:
+async def login(
+    payload: UserLogin, request: Request, db: AsyncSession = Depends(get_db)
+) -> Token:
+    if _is_login_rate_limited(request, payload.email):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed login attempts. Please try again later.",
+        )
+
     result = await db.execute(select(User).where(User.email == payload.email))
     user = result.scalar_one_or_none()
 
     if not user or not verify_password(payload.password, user.hashed_password):
+        _record_failed_login_attempt(request, payload.email)
+        await log_audit_event(
+            db=db,
+            action="auth.login.failed",
+            target_type="user",
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials.",
         )
 
+    _clear_failed_login_attempts(request, payload.email)
     token = create_access_token(subject=str(user.id))
     await log_audit_event(
         db=db,

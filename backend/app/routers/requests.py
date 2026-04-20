@@ -16,6 +16,28 @@ router = APIRouter()
 settings = get_settings()
 
 ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png"}
+FILE_SIGNATURES = {
+    ".pdf": (b"%PDF-",),
+    ".jpg": (b"\xff\xd8\xff",),
+    ".jpeg": (b"\xff\xd8\xff",),
+    ".png": (b"\x89PNG\r\n\x1a\n",),
+}
+
+
+def _is_valid_upload_filename(filename: str) -> bool:
+    stripped = filename.strip()
+    if not stripped or stripped in {".", ".."}:
+        return False
+    if stripped != Path(stripped).name:
+        return False
+    if any(char in stripped for char in ('\x00', "/", "\\")):
+        return False
+    return True
+
+
+def _has_valid_file_signature(ext: str, content: bytes) -> bool:
+    signatures = FILE_SIGNATURES.get(ext, ())
+    return any(content.startswith(signature) for signature in signatures)
 
 
 @router.post("", response_model=ServiceRequestPublic, status_code=status.HTTP_201_CREATED)
@@ -94,7 +116,14 @@ async def upload_attachment(
         )
 
     original_filename = file.filename or ""
-    ext = Path(original_filename).suffix.lower()
+    if not _is_valid_upload_filename(original_filename):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filename.")
+
+    suffixes = Path(original_filename).suffixes
+    if len(suffixes) != 1:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File type is not allowed.")
+
+    ext = suffixes[0].lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File type is not allowed.")
 
@@ -103,6 +132,8 @@ async def upload_attachment(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file is not allowed.")
     if len(content) > settings.max_upload_size_bytes:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File too large.")
+    if not _has_valid_file_signature(ext, content):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File content does not match file type.")
 
     storage_dir = Path(settings.upload_dir)
     storage_dir.mkdir(parents=True, exist_ok=True)
