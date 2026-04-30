@@ -21,9 +21,16 @@ ALLOWED_TRANSITIONS = {
 @router.get("/requests", response_model=list[ServiceRequestPublic])
 async def list_all_requests(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_roles([UserRole.operator])),
+    current_user: User = Depends(require_roles([UserRole.operator])),
 ) -> list[ServiceRequestPublic]:
-    result = await db.execute(select(ServiceRequest).order_by(ServiceRequest.created_at.desc()))
+    if current_user.department_id is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Operator department is not assigned.")
+
+    result = await db.execute(
+        select(ServiceRequest)
+        .where(ServiceRequest.department_id == current_user.department_id)
+        .order_by(ServiceRequest.created_at.desc())
+    )
     requests = result.scalars().all()
     return [ServiceRequestPublic.model_validate(item) for item in requests]
 
@@ -35,10 +42,15 @@ async def update_request_status(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.operator])),
 ) -> ServiceRequestPublic:
+    if current_user.department_id is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Operator department is not assigned.")
+
     result = await db.execute(select(ServiceRequest).where(ServiceRequest.id == request_id))
     request = result.scalar_one_or_none()
     if request is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found.")
+    if request.department_id != current_user.department_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
 
     allowed_next = ALLOWED_TRANSITIONS.get(request.status, set())
     if payload.status not in allowed_next:

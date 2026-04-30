@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import auth, operator, requests
+from app.routers import attachments, auth, operator, requests
 
 settings = get_settings()
 
@@ -33,6 +33,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(requests.router, prefix="/requests", tags=["citizen-requests"])
 app.include_router(operator.router, prefix="/operator", tags=["operator"])
+app.include_router(attachments.router, prefix="/attachments", tags=["attachments"])
 
 
 @app.get("/health")
