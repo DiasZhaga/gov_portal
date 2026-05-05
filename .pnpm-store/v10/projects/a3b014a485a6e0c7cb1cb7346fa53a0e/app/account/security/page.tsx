@@ -8,6 +8,7 @@ import { CheckCircle2, Copy, KeyRound, Loader2, ShieldCheck } from "lucide-react
 
 import { authApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { ROLE_LABELS } from "@/lib/helpers";
 import { Navbar } from "@/components/navbar";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
@@ -212,7 +213,6 @@ export default function SecurityPage() {
           <Card className="shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">Профиль</CardTitle>
-              <CardDescription>Данные, которые backend возвращает безопасно.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div>
@@ -229,7 +229,7 @@ export default function SecurityPage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Роль</p>
-                <p className="font-medium capitalize text-foreground">{user.role}</p>
+                <p className="font-medium text-foreground">{ROLE_LABELS[user.role]}</p>
               </div>
             </CardContent>
           </Card>

@@ -14,10 +14,18 @@ import { authApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 const schema = z.object({
-  email: z.string().email("Введите действительный адрес электронной почты"),
+  email: z
+    .string()
+    .email("Введите действительный адрес электронной почты"),
   password: z
     .string()
     .min(8, "Пароль обязателен")
@@ -50,8 +58,11 @@ export default function LoginPage() {
     formState: { errors: mfaErrors },
   } = useForm<MfaFormData>({ resolver: zodResolver(mfaSchema) });
 
-  const finishLogin = async (accessToken: string) => {
-    const me = await login(accessToken);
+  const finishLogin = async (tokens: {
+    access_token: string;
+    refresh_token: string;
+  }) => {
+    const me = await login(tokens);
     router.push(me.role === "operator" ? "/operator" : "/citizen");
   };
 
@@ -66,10 +77,17 @@ export default function LoginPage() {
         return;
       }
       if ("access_token" in res) {
-        await finishLogin(res.access_token);
+        await finishLogin({
+          access_token: res.access_token,
+          refresh_token: res.refresh_token,
+        });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Не удалось войти. Проверьте данные.");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Не удалось войти. Проверьте данные."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -84,9 +102,16 @@ export default function LoginPage() {
         code: data.code,
       });
       setMfaToken(null);
-      await finishLogin(res.access_token);
+      await finishLogin({
+        access_token: res.access_token,
+        refresh_token: res.refresh_token,
+      });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Не удалось подтвердить код.");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Не удалось подтвердить код."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -99,8 +124,12 @@ export default function LoginPage() {
           <Shield className="h-6 w-6 text-primary-foreground" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Gossector Portal</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Система запросов государственных услуг</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Gossector Portal
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Система запросов государственных услуг
+          </p>
         </div>
       </div>
 
@@ -144,7 +173,9 @@ export default function LoginPage() {
                   aria-invalid={!!errors.password}
                 />
                 {errors.password && (
-                  <p className="text-xs text-destructive">{errors.password.message}</p>
+                  <p className="text-xs text-destructive">
+                    {errors.password.message}
+                  </p>
                 )}
               </div>
 
@@ -154,7 +185,11 @@ export default function LoginPage() {
               </Button>
             </form>
           ) : (
-            <form onSubmit={handleMfaSubmit(onMfaSubmit)} noValidate className="space-y-4">
+            <form
+              onSubmit={handleMfaSubmit(onMfaSubmit)}
+              noValidate
+              className="space-y-4"
+            >
               <div className="space-y-1.5">
                 <Label htmlFor="code">Код MFA</Label>
                 <div className="relative">
@@ -195,7 +230,10 @@ export default function LoginPage() {
           {!mfaToken && (
             <p className="mt-4 text-center text-sm text-muted-foreground">
               Нет аккаунта?{" "}
-              <Link href="/register" className="font-medium text-primary underline-offset-4 hover:underline">
+              <Link
+                href="/register"
+                className="font-medium text-primary underline-offset-4 hover:underline"
+              >
                 Зарегистрируйтесь
               </Link>
             </p>

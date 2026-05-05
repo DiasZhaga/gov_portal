@@ -176,6 +176,34 @@ async def get_request_by_id(
     return ServiceRequestPublic.model_validate(request)
 
 
+@router.get("/{request_id}/attachments", response_model=list[AttachmentPublic])
+async def list_request_attachments(
+    request_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.citizen])),
+) -> list[AttachmentPublic]:
+    request_result = await db.execute(
+        select(ServiceRequest).where(ServiceRequest.id == request_id)
+    )
+    request = request_result.scalar_one_or_none()
+    if request is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Request not found."
+        )
+    if request.citizen_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied."
+        )
+
+    attachments_result = await db.execute(
+        select(Attachment)
+        .where(Attachment.request_id == request.id)
+        .order_by(Attachment.uploaded_at.desc())
+    )
+    attachments = attachments_result.scalars().all()
+    return [AttachmentPublic.model_validate(item) for item in attachments]
+
+
 @router.post(
     "/{request_id}/attachments",
     response_model=AttachmentPublic,

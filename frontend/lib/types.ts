@@ -41,7 +41,13 @@ export interface AttachmentPublic {
   uploaded_at: string;
 }
 
-export interface TokenResponse {
+export interface AuthTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: "bearer";
+}
+
+export interface AccessTokenResponse {
   access_token: string;
   token_type: "bearer";
 }
@@ -52,7 +58,7 @@ export interface LoginMfaRequiredResponse {
   token_type: "mfa";
 }
 
-export type LoginResponse = TokenResponse | LoginMfaRequiredResponse;
+export type LoginResponse = AuthTokenResponse | LoginMfaRequiredResponse;
 
 export interface MfaSetupResponse {
   otpauth_uri: string;

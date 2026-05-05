@@ -1,4 +1,4 @@
-import type { ServiceType, RequestStatus } from "./types";
+import type { Role, ServiceType, RequestStatus } from "./types";
 
 export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
   birth_certificate: "Свидетельство о рождении",
@@ -20,21 +20,28 @@ export const STATUS_TRANSITIONS: Record<RequestStatus, RequestStatus[]> = {
   rejected: [],
 };
 
+export const ROLE_LABELS: Record<Role, string> = {
+  citizen: "Гражданин",
+  operator: "Оператор",
+  admin: "Администратор",
+};
+
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
+  return new Date(iso).toLocaleDateString("ru-RU", {
     year: "numeric",
-    month: "short",
+    month: "long",
     day: "numeric",
   });
 }
 
 export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("en-US", {
+  return new Date(iso).toLocaleString("ru-RU", {
     year: "numeric",
-    month: "short",
+    month: "long",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 }
 

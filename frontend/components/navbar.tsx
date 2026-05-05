@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { ROLE_LABELS } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -75,7 +76,7 @@ export function Navbar() {
           {/* Role badge */}
           {user && (
             <span className="hidden rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium capitalize text-muted-foreground sm:inline">
-              {user.role}
+              {ROLE_LABELS[user.role]}
             </span>
           )}
 
