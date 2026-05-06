@@ -2,8 +2,6 @@
 
 Gossector Portal is a university MVP of a government service portal. Citizens can submit service requests and upload supporting documents, while operators review requests that belong only to their assigned department.
 
-This repository is prepared for a Secure SDLC / OWASP Top 10 style assignment. The application is functional, but it is still an MVP and should not be presented as enterprise-ready production software.
-
 ## Main Business Scenario
 
 1. A citizen registers with email, password, and IIN.
